@@ -1,0 +1,36 @@
+FROM openjdk:17-oraclelinux8
+
+ENV ANDROID_COMMANDLINE_TOOLS_PATH="commandlinetools-linux-9477386_latest.zip" \
+    ANDROID_HOME_PATH="/usr/local/android-sdk-linux" \
+    FLUTTER_VERSION="3.7.2"
+
+RUN set -ex \
+    && java -version \
+    && microdnf install dnf \
+    && dnf update -y \
+    && dnf install bash \
+    && dnf install file -y \
+    && dnf install git -y \
+    && dnf install which -y \
+    && dnf install zip -y \
+    && dnf install findutils -y \
+    && dnf install 'dnf-command(config-manager)' -y \
+    && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
+    && dnf install gh -y \
+    # Install Android SDK manager 
+    && curl -o /tmp/android-sdkmanager.zip "https://dl.google.com/android/repository/${ANDROID_COMMANDLINE_TOOLS_PATH}" \
+    && mkdir -p ${ANDROID_HOME_PATH}/cmdline-tools/latest \
+    && unzip -q /tmp/android-sdkmanager.zip && rm /tmp/android-sdkmanager.zip \
+    && mv cmdline-tools/* ${ANDROID_HOME_PATH}/cmdline-tools/latest \
+    && echo 'export ANDROID_HOME=${ANDROID_HOME_PATH}' >> ~/.bashrc \
+    && echo 'export ANDROID_SDK_ROOT=${ANDROID_HOME_PATH}' >> ~/.bashrc \
+    && echo 'export PATH=${ANDROID_HOME_PATH}/cmdline-tools/latest/bin:${ANDROID_HOME_PATH}/platform-tools:${ANDROID_HOME_PATH}/platforms:/flutter/bin:$PATH' >> ~/.bashrc \
+    && source ~/.bashrc \
+    && yes | sdkmanager --licenses \
+    && sdkmanager --update \
+    && sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0" \
+    # Install Flutter
+    && git clone https://github.com/flutter/flutter.git -b ${FLUTTER_VERSION} \
+    && flutter precache \
+    && flutter doctor --android-licenses y \
+    && flutter doctor -v
